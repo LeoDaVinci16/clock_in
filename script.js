@@ -92,3 +92,36 @@ function sendEmail() {
 
 // Init
 updateUI();
+
+function manualCheck() {
+    let input = document.getElementById("manualTime").value;
+
+    if (!input) {
+        alert("Select a date and time");
+        return;
+    }
+
+    let d = new Date(input);
+
+    let date = d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0");
+
+    let time = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    let data = loadData();
+
+    let entry = data.find(e => e.date === date);
+
+    if (!entry) {
+        data.push({ date: date, check_in: time, check_out: "" });
+    } else if (!entry.check_out) {
+        entry.check_out = time;
+    } else {
+        alert("Already completed for this day");
+        return;
+    }
+
+    saveData(data);
+    updateUI();
+}
