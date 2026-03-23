@@ -6,7 +6,7 @@ function saveData(data) {
     localStorage.setItem("work_log", JSON.stringify(data));
 }
 
-// Local date (IMPORTANT: avoids UTC bug)
+// Local date
 function getToday() {
     let d = new Date();
     return d.getFullYear() + "-" +
@@ -18,7 +18,7 @@ function getTime() {
     return new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
-// Update UI
+// UI update
 function updateUI() {
     let data = loadData();
     let today = getToday();
@@ -44,7 +44,7 @@ function updateUI() {
     renderHistory();
 }
 
-// Main button logic
+// Main button
 function checkAction() {
     let data = loadData();
     let today = getToday();
@@ -62,12 +62,12 @@ function checkAction() {
     updateUI();
 }
 
-// Manual override (EDIT)
+// Manual edit
 function manualCheck() {
     let input = document.getElementById("manualTime").value;
 
     if (!input) {
-        alert("Select a date and time");
+        alert("Select date & time");
         return;
     }
 
@@ -80,20 +80,14 @@ function manualCheck() {
     let time = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
     let data = loadData();
-
     let entry = data.find(e => e.date === date);
 
     if (!entry) {
-        // create new entry
         data.push({ date: date, check_in: time, check_out: "" });
     } else {
-        // overwrite intelligently
         if (!entry.check_in) {
             entry.check_in = time;
-        } else if (!entry.check_out) {
-            entry.check_out = time;
         } else {
-            // if both exist → overwrite check_out
             entry.check_out = time;
         }
     }
@@ -102,35 +96,89 @@ function manualCheck() {
     updateUI();
 }
 
-// History display
+// Render history with editable fields
 function renderHistory() {
     let data = loadData();
+    let container = document.getElementById("history");
 
-    let text = data.map(e =>
-        `${e.date}   IN ${e.check_in}   OUT ${e.check_out}`
-    ).join("\n");
+    container.innerHTML = "";
 
-    document.getElementById("history").innerText = text;
+    data.forEach((e, index) => {
+        let row = document.createElement("div");
+        row.className = "row";
+
+        row.innerHTML = `
+            <span class="date">${e.date}</span>
+
+            <span class="time editable" data-index="${index}" data-field="check_in">
+                ${e.check_in || "-"}
+            </span>
+
+            <span class="time editable" data-index="${index}" data-field="check_out">
+                ${e.check_out || "-"}
+            </span>
+        `;
+
+        container.appendChild(row);
+    });
+
+    enableEditing();
 }
 
-// Weekly summary
-function getWeeklySummary() {
+// Enable click-to-edit
+function enableEditing() {
+    document.querySelectorAll(".editable").forEach(el => {
+        el.onclick = function () {
+            let index = this.dataset.index;
+            let field = this.dataset.field;
+
+            let currentValue = this.innerText;
+
+            let input = document.createElement("input");
+            input.type = "time";
+            input.value = currentValue !== "-" ? currentValue : "";
+
+            this.innerHTML = "";
+            this.appendChild(input);
+            input.focus();
+
+            input.onblur = () => saveEdit(index, field, input.value);
+            input.onkeydown = (e) => {
+                if (e.key === "Enter") {
+                    saveEdit(index, field, input.value);
+                }
+            };
+        };
+    });
+}
+
+// Save inline edit
+function saveEdit(index, field, value) {
     let data = loadData();
 
+    if (value) {
+        data[index][field] = value;
+    }
+
+    saveData(data);
+    updateUI();
+}
+
+// Copy summary
+function getSummary() {
+    let data = loadData();
     return data.map(e =>
-        `${e.date}  IN ${e.check_in}  OUT ${e.check_out}`
+        `${e.date} IN ${e.check_in} OUT ${e.check_out}`
     ).join("\n");
 }
 
-// Copy to clipboard
 function copySummary() {
-    navigator.clipboard.writeText(getWeeklySummary());
+    navigator.clipboard.writeText(getSummary());
     alert("Copied!");
 }
 
-// Email
 function sendEmail() {
-    let body = encodeURIComponent(getWeeklySummary());
+    let body = encodeURIComponent(getSummary());
     window.location.href = `mailto:?subject=Work hours&body=${body}`;
 }
 
