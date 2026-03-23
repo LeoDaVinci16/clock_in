@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check In</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+
+</head>
+<body>
+
+<div class="app">
+
+    <h1 id="status">Not checked in</h1>
+
+    <button id="mainBtn" onclick="checkAction()">
+        CHECK IN
+    </button>
+
+    <div class="actions">
+        <button onclick="copySummary()">📋 Copy Week</button>
+        <button onclick="sendEmail()">📧 Email</button>
+    </div>
+
+    <div id="history"></div>
+
+</div>
+
+<script src="script.js"></script>
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
