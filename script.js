@@ -6,8 +6,12 @@ function saveData(data) {
     localStorage.setItem("work_log", JSON.stringify(data));
 }
 
+// Local date (IMPORTANT: avoids UTC bug)
 function getToday() {
-    return new Date().toISOString().split("T")[0];
+    let d = new Date();
+    return d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0");
 }
 
 function getTime() {
@@ -40,7 +44,7 @@ function updateUI() {
     renderHistory();
 }
 
-// Button logic
+// Main button logic
 function checkAction() {
     let data = loadData();
     let today = getToday();
@@ -58,41 +62,7 @@ function checkAction() {
     updateUI();
 }
 
-// History
-function renderHistory() {
-    let data = loadData();
-
-    let text = data.map(e =>
-        `${e.date}   IN ${e.check_in}   OUT ${e.check_out}`
-    ).join("\n");
-
-    document.getElementById("history").innerText = text;
-}
-
-// Weekly summary
-function getWeeklySummary() {
-    let data = loadData();
-
-    return data.map(e =>
-        `${e.date}  IN ${e.check_in}  OUT ${e.check_out}`
-    ).join("\n");
-}
-
-// Copy
-function copySummary() {
-    navigator.clipboard.writeText(getWeeklySummary());
-    alert("Copied!");
-}
-
-// Email
-function sendEmail() {
-    let body = encodeURIComponent(getWeeklySummary());
-    window.location.href = `mailto:?subject=Work hours&body=${body}`;
-}
-
-// Init
-updateUI();
-
+// Manual override (EDIT)
 function manualCheck() {
     let input = document.getElementById("manualTime").value;
 
@@ -114,14 +84,55 @@ function manualCheck() {
     let entry = data.find(e => e.date === date);
 
     if (!entry) {
+        // create new entry
         data.push({ date: date, check_in: time, check_out: "" });
-    } else if (!entry.check_out) {
-        entry.check_out = time;
     } else {
-        alert("Already completed for this day");
-        return;
+        // overwrite intelligently
+        if (!entry.check_in) {
+            entry.check_in = time;
+        } else if (!entry.check_out) {
+            entry.check_out = time;
+        } else {
+            // if both exist → overwrite check_out
+            entry.check_out = time;
+        }
     }
 
     saveData(data);
     updateUI();
 }
+
+// History display
+function renderHistory() {
+    let data = loadData();
+
+    let text = data.map(e =>
+        `${e.date}   IN ${e.check_in}   OUT ${e.check_out}`
+    ).join("\n");
+
+    document.getElementById("history").innerText = text;
+}
+
+// Weekly summary
+function getWeeklySummary() {
+    let data = loadData();
+
+    return data.map(e =>
+        `${e.date}  IN ${e.check_in}  OUT ${e.check_out}`
+    ).join("\n");
+}
+
+// Copy to clipboard
+function copySummary() {
+    navigator.clipboard.writeText(getWeeklySummary());
+    alert("Copied!");
+}
+
+// Email
+function sendEmail() {
+    let body = encodeURIComponent(getWeeklySummary());
+    window.location.href = `mailto:?subject=Work hours&body=${body}`;
+}
+
+// Init
+updateUI();
