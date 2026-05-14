@@ -96,6 +96,37 @@ function manualCheck() {
     updateUI();
 }
 
+// Helper to calculate duration between two HH:MM time strings
+function calculateDuration(checkInTime, checkOutTime) {
+    if (!checkInTime || !checkOutTime) {
+        return "";
+    }
+
+    // Parse HH:MM strings into total minutes from midnight
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const inMinutes = parseTime(checkInTime);
+    const outMinutes = parseTime(checkOutTime);
+
+    let diffMinutes = outMinutes - inMinutes;
+
+    // If check_out is earlier than check_in, it's an invalid entry for same-day calculation
+    if (diffMinutes < 0) {
+        return "Invalid";
+    }
+
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+
+    let durationString = "";
+    if (hours > 0) durationString += `${hours}h `;
+    durationString += `${minutes}m`; // Always show minutes, even if 0
+    return durationString.trim();
+}
+
 // Render history with editable fields
 function renderHistory() {
     let data = loadData();
@@ -107,6 +138,9 @@ function renderHistory() {
         let row = document.createElement("div");
         row.className = "row";
 
+        let duration = calculateDuration(e.check_in, e.check_out);
+        let durationDisplay = duration ? `<span class="duration">${duration}</span>` : `<span class="duration">-</span>`;
+
         row.innerHTML = `
             <span class="date">${e.date}</span>
 
@@ -117,6 +151,7 @@ function renderHistory() {
             <span class="time editable" data-index="${index}" data-field="check_out">
                 ${e.check_out || "-"}
             </span>
+            ${durationDisplay}
         `;
 
         container.appendChild(row);
@@ -167,9 +202,10 @@ function saveEdit(index, field, value) {
 // Copy summary
 function getSummary() {
     let data = loadData();
-    return data.map(e =>
-        `${e.date} IN ${e.check_in} OUT ${e.check_out}`
-    ).join("\n");
+    return data.map(e => {
+        const duration = calculateDuration(e.check_in, e.check_out);
+        return `${e.date} IN ${e.check_in || '-'} OUT ${e.check_out || '-'} ${duration ? `(${duration})` : ''}`;
+    }).join("\n");
 }
 
 function copySummary() {
